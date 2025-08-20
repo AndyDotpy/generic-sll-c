@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct node {
 	void *value;
@@ -365,9 +366,9 @@ void filter_ll(linked_list *list, int (*func)(void *)) { // func should return 1
 	list->tail->next = NULL;
 }
 
-void *each_ll(node *new_curr) {
+void *iter_ll(linked_list *new_linked_list) {
 	static node *curr = NULL;
-	if (new_curr == NULL) {
+	if (new_linked_list == NULL) {
 		if (curr == NULL) {
 			return NULL;
 		}
@@ -377,7 +378,7 @@ void *each_ll(node *new_curr) {
 		return return_val;
 	}
 
-	curr = new_curr;
+	curr = new_linked_list->head;
 	return NULL;
 }
 
@@ -445,8 +446,17 @@ linked_list *seperate_ll(linked_list *list, int(*func)(void *), void *(*allocato
 }
 
 // TODO make a sorting method that works efficiently
+void merge_sort_ll(linked_list *list) {
+	if (list->head == NULL || list->head->next == NULL) {
+		return;
+	}
 
-// TODO make a get index based off of val method
+	node *head = list->head;
+	list->head = NULL;
+
+}
+
+// TODO make a get index based off of val method (This is done)
 size_t get_index_ll(linked_list *list, void *value, size_t occurrence) { // returns 0 <= x < size if successfull else returns size
 	if (list == NULL || value == NULL || !occurrence) {
 		return list->size;
@@ -467,6 +477,188 @@ size_t get_index_ll(linked_list *list, void *value, size_t occurrence) { // retu
 	}
 
 	return list->size;
+}
+
+void **get_as_array_ll(linked_list *list) { // Still need to free the linked list and the array, be careful if the data contains pointers to elsewhere the data is deep copied.
+	if (list == NULL) {
+		return NULL;
+	}
+
+	void **array = malloc (list->size * sizeof(void *));
+	node *curr = list->head;
+	size_t i = 0;
+
+	while (curr != NULL) {
+		array[i] = malloc (curr->val_size);
+		list->deep_copyv(array[i], curr->value, curr->val_size);
+		i++; curr = curr->next;
+	}
+
+	return array;
+}
+
+void **convert_to_array_ll(linked_list *list) { // This one creates the array while freeing the linked list
+	if (list == NULL) {
+		return NULL;
+	}
+
+	void **array = malloc (list->size * sizeof(void *));
+	node *curr = list->head;
+	node *prev = NULL;
+	list->head = NULL;
+	size_t i = 0;
+
+	while (curr != NULL) {
+		array[i] = malloc (curr->val_size);
+		list->deep_copyv(array[i], curr->value, curr->val_size);
+		list->freev(curr->value);
+		prev = curr;
+		i++; curr = curr->next;
+		free(prev);
+	}
+
+	free(list);
+	return array;
+}
+
+linked_list *array_to_linked_list(void **array, size_t size_of_array, size_t size_of_value, void *(*allocator_p)(size_t), void (*freev)(void *)) { // Assumes array is already stored on heap
+	linked_list *list = new_linked_list(allocator_p);
+	list->freev = (freev == NULL) ? free : freev;
+
+	if (array == NULL) {
+		return list;
+	}
+
+	list->head = (node *) list->allocate (sizeof(node));
+	list->head->value = list->allocate (size_of_value);
+	memcpy(list->head->value, array[0], size_of_value);
+	list->head->val_size = size_of_value;
+	list->freev(array[0]);
+	list->tail = list->head;
+
+	for (size_t i = 1; i < size_of_array; i++) {
+		list->tail->next = (node *) list->allocate (sizeof(node));
+		list->tail->next->value = list->allocate (size_of_value);
+		memcpy(list->tail->next->value, array[i], size_of_value);
+		list->tail->next->val_size = size_of_value;
+		list->freev(array[i]);
+		list->tail = list->tail->next;
+	}
+	list->tail->next = NULL;
+	list->size = size_of_array;
+
+	free(array);
+	return list;
+}
+
+linked_list *array_as_linked_list(void **array, size_t size_of_array, size_t size_of_value, void *(*allocator_p)(size_t), void (*freev)(void*)) {// Assumes array is already stored on heap does not free array
+	linked_list *list = new_linked_list(allocator_p);
+	list->freev = (freev == NULL) ? free : freev;
+
+	if (array == NULL) {
+		return list;
+	}
+
+	list->head = (node *) list->allocate (sizeof(node));
+	list->head->value = list->allocate (size_of_value);
+	memcpy(list->head->value, array[0], size_of_value);
+	list->head->val_size = size_of_value;
+	list->tail = list->head;
+
+	for (size_t i = 1; i < size_of_array; i++) {
+		list->tail->next = (node *) list->allocate (sizeof(node));
+		list->tail->next->value = list->allocate (size_of_value);
+		memcpy(list->tail->next->value, array[i], size_of_value);
+		list->tail->next->val_size = size_of_value;
+		list->tail = list->tail->next;
+	}
+	list->tail->next = NULL;
+	list->size = size_of_array;
+
+	return list;
+}
+
+
+int internal_check_ll(linked_list *list, int fix) {// returns amount of tests failed 0 - 2
+	printf("##### ##### ##### START OF INTERNAL CHECK ##### ##### #####\n");
+	printf("_____ Function Addresses _____\n");
+	printf("printv address:     %p\n", list->printv);
+	printf("freev address:      %p\n", list->freev);
+	printf("deep_copyv address: %p\n", list->deep_copyv);
+	printf("allocate address:   %p\n", list->allocate);
+	printf("compare address:    %p\n", list->compare);
+	printf("list head address:  %p\n\n", list->head);
+
+	char tests_passed = 0;
+	size_t size = 0;
+	node *curr = list->head;
+
+	if (curr != NULL) {
+		while (curr->next != NULL) {
+			size++;
+			curr = curr->next;
+		}
+		size++;
+	}
+	
+	printf("_____ Tail and Size Tests _____\n");
+	printf("Stored list size:  %zu\n", list->size);
+	printf("Checked list size: %zu\n", size);
+	if (list->size == size) {
+		tests_passed++;
+		printf("-> Size test passed!\n");
+	} else {
+		printf("-> Size test failed!\n");
+	}
+	
+	printf("Stored tail address:  %p\n", list->tail);
+	printf("Checked tail address: %p\n", curr);
+	if (curr == list->tail) {
+		tests_passed++;
+		printf("-> Tail test passed!\n");
+	} else {
+		printf("-> Tail test failed!\n");
+	}
+	
+	printf("\n_____ Overview _____\n");
+	printf("%d/2 Tests passed\n\n", tests_passed);
+
+	if (fix) {
+		list->size = size;
+		list->tail = curr;
+		printf("Size and tail set to what was found during check.\n");
+	} else if (tests_passed != 2) {
+		printf("Failed tests not fixed.\nIf you want to fix them use fix_ll or this function with the fix parameter set to a non zero value.\n");
+	}
+	printf("##### ##### ##### -END- OF INTERNAL CHECK ##### ##### #####\n");
+
+	return 2 - tests_passed;
+}
+
+void fix_ll(linked_list *list, int display_fix_message) {
+	node *curr = list->head;
+	size_t size = 0;
+
+	if (curr != NULL) {
+		while (curr->next != NULL) {
+			size++;
+			curr = curr->next;
+		}
+		size++;
+	}
+
+	if (display_fix_message) {
+		if (size != list->size) {
+			printf("Previous size: %zu\n", list->size);
+			printf("Fixed size:    %zu\n", size);
+		} if (curr != list->tail) {
+			printf("Previous tail: %p\n", list->tail);
+			printf("Fixed tail:    %p\n", curr);
+		}
+	}
+
+	list->size = size;
+	list->tail = curr;
 }
 
 int get_int_val_ll(linked_list *list, size_t index) {
@@ -601,23 +793,72 @@ int main() {
 	print_linked_list(tail_slice);
 	printf("----- ----- Cloned list after the slices ----- -----\n");
 	print_linked_list(clone_list);
-	printf("----- Testing each_ll by adding up everything in the sliced_list -----\n");
-	each_ll(sliced_list->head);
+	printf("----- Testing iter_ll by adding up everything in the sliced_list -----\n");
+	iter_ll(sliced_list);
 	// i defined above
 	int total = 0;
 	void *ret;
-	while (i = ((ret = each_ll(NULL)) ? *(int*)ret: 0)) {
+	while (i = ((ret = iter_ll(NULL)) ? *(int*)ret: 0)) {
 		total += i;
 	}
 	printf("Total of sliced_list = %d\n", total);
+
+	internal_check_ll(my_list, 0);
+	void **my_array = get_as_array_ll(my_list);
+	for (i = 0; i < my_list->size; i++) {
+		printf("Elem %d is %d\n", i + 1, *(int*)(my_array[i]));
+	}
 	
 	free(extract1);
 	free(extract2);
 	free(extract3);
+	//for (int i = 0; i < 6; i++) {
+	//	free(my_array[i]);
+	//}
+	//free(my_array);
+	
+	void **my_array2 = convert_to_array_ll(my_list);
+	for (i = 0; i < 6; i++) {
+		printf("(2) Elem %d is %d\n", i + 1, *(int*)(my_array2[i]));
+	}
+
+
+	my_list = array_to_linked_list(my_array, 6, 4, NULL, NULL);
+	printf("Test of value at index 0 -> %d\n", get_int_val_ll(my_list, 0));
+	printf("Test of value at index 5 -> %d\n", get_int_val_ll(my_list, 5));
+	internal_check_ll(my_list, 0);
+
+
+	linked_list *my_list2 = array_as_linked_list(my_array2, 6, 4, NULL, NULL);
+	printf("(2) LL Test of value at index 0 -> %d\n", get_int_val_ll(my_list2, 0));
+	printf("(2) LL Test of value at index 5 -> %d\n", get_int_val_ll(my_list2, 5));
+	printf("Array Test of value at index 0 -> %d\n", *(int*)my_array2[0]);
+	printf("Array Test of value at index 5 -> %d\n", *(int*)my_array2[5]);
+	internal_check_ll(my_list2, 0);
+
+	free_linked_list(my_list2);
+
+	for (i = 0; i < 6; i++) {
+		free(my_array2[i]);
+	}
+
+	clock_t start, end;
+	linked_list* five_mil_test = new_linked_list(NULL);
+
+	start = clock();
+	for (i = 0; i < 5000000; i++) {// 5 million elements test
+		prepend_ll(five_mil_test, &i, sizeof(int));
+	}
+	end = clock();
+	double cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
+	printf("%f Seconds used by the CPU to prepend 5 million elements to a empty linked_list!\n", cpu_time_used);
+	free(my_array2);
+	free_linked_list(five_mil_test);
+
+	free_linked_list(my_list);
 	free_linked_list(head_slice);
 	free_linked_list(tail_slice);
 	free_linked_list(sliced_list);
-	free_linked_list(my_list);
 	free_linked_list(clone_list);
 	return 0;
 }
