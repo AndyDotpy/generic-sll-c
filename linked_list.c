@@ -58,7 +58,7 @@ size_t get_size_ll(linked_list *list) {
 	return list->size;
 }
 
-void empty_linked_list(linked_list* list) {
+void empty_ll(linked_list* list) {
 	node *curr = list->head;
 	node *next;
 	while (curr != NULL) {
@@ -71,7 +71,7 @@ void empty_linked_list(linked_list* list) {
 }
 
 void free_linked_list(linked_list* list) {
-	empty_linked_list(list);
+	empty_ll(list);
 	free(list);
 }
 
@@ -237,9 +237,9 @@ void *extract_ll(linked_list *list, size_t index) {
 	return return_val;
 }
 
-void print_linked_list(linked_list *list) {
+void print_ll(linked_list *list) {
 	if (list->printv == NULL) {
-		printf("printv function is required\n");
+		printf("Attempted to call print_ll without giving the linked list a print function!\nYou can do so by set_print_ll\n");
 		return;
 	}
 
@@ -299,7 +299,7 @@ linked_list *clone_linked_list(linked_list *list, void *(*allocator_p)(size_t)) 
 	return cloned_list;
 }
 
-void reverse_linked_list(linked_list *list) {
+void reverse_ll(linked_list *list) {
 	if (is_empty_ll(list) || list->head->next == NULL) {
 		return;
 	}
@@ -353,6 +353,11 @@ void map_ll(linked_list *list, void (*func)(void *)) {
 
 void filter_ll(linked_list *list, int (*func)(void *)) { // func should return 1 if the value should be removed else 0
 	if (is_empty_ll(list)) {
+		return;
+	}
+
+	if (func == NULL) {
+		printf("Attempted to filter linked list when the filter function is NULL?\n");
 		return;
 	}
 
@@ -451,7 +456,7 @@ linked_list *slice_ll(linked_list* list, size_t start, size_t end, void *(*alloc
 	return new_list;
 }
 
-linked_list *seperate_ll(linked_list *list, int(*func)(void *), void *(*allocator_p)(size_t)) { // func should return 1 if going in seperated list else 0
+linked_list *seperate_linked_list(linked_list *list, int(*func)(void *), void *(*allocator_p)(size_t)) { // func should return 1 if going in seperated list else 0
 	linked_list *new_list = new_linked_list((allocator_p) ? allocator_p : list->allocate);
 	new_list->printv = list->printv;
 	new_list->freev = list->freev;
@@ -468,10 +473,35 @@ linked_list *seperate_ll(linked_list *list, int(*func)(void *), void *(*allocato
 	node *curr = list->head;
 	node *next = NULL;
 
-	while () {
-		
+	while (curr != NULL) {
+		next = curr->next;
+
+		if (func(curr->value)) {
+			if (new_curr == NULL) {
+				new_list->head = new_curr = curr;
+			} else {
+				new_curr->next = curr;
+				new_curr = curr;
+			}
+
+			if (prev == NULL) {
+				list->head = next;
+			} else {
+				prev->next = next;
+			}
+
+			new_list->size++;
+			list->size--;
+		} else {
+			prev = curr;
+		}
+		curr = next;
 	}
 	
+	list->tail = prev;
+	list->tail->next = NULL;
+	new_list->tail = new_curr;
+	new_list->tail->next = NULL;
 
 	return new_list;
 }
@@ -483,7 +513,7 @@ void merge_sort_ll(linked_list *list) {
 	}
 
 	if (list->compare == NULL) {
-		printf("Called merge_sort_ll without giving the linked list a compare function?!\nSet it by list_name->compare = your_function\n");
+		printf("Called merge_sort_ll without giving the linked list a compare function?!\nSet it by set_compare_ll\n");
 		return;
 	}
 
@@ -573,7 +603,7 @@ int is_sorted_ll(linked_list *list) {
 	}
 
 	if (list->compare == NULL) {
-		printf("Attempted to check if linked list is sorted without a compare function?!\nTo give it one do list_name->compare = function_name\n");
+		printf("Called is_sorted_ll without giving the linked list a compare function?!\nSet it by set_compare_ll\n");
 		return 0;
 	}
 
@@ -901,38 +931,38 @@ int main() {
 	for (i = 0; i < 8; i++) {
 		printf("Int added at index: %zu\n", append_ll(my_list, &values[i], sizeof(int)));
 	}
-	print_linked_list(my_list);
+	print_ll(my_list);
 	printf("\nCurrent Size: %zu\n", get_size_ll(my_list));
 	printf("----- ----- Removing Test ----- -----\n");
 	for (i = 0; i < 11; i += 2) {
 		printf("Attempt to remove data at index: %d, result: %d\n", i, delete_ll(my_list, i));
 	}
-	print_linked_list(my_list);
+	print_ll(my_list);
 	printf("\nCurrent Size: %zu\n", get_size_ll(my_list));
 	printf("----- Two threes added at front -----\n");
 	prepend_ll(my_list, &values[2], sizeof(int));
 	prepend_ll(my_list, &values[2], sizeof(int));
-	print_linked_list(my_list);
+	print_ll(my_list);
 	printf("\nCurrent Size: %zu\n", get_size_ll(my_list));
 	insert_ll(my_list, &values[6], sizeof(int), 5);
 	insert_ll(my_list, &values[6], sizeof(int), 7);
 	printf("----- Inserted 7 at index 5 and 7 -----\n");
-	print_linked_list(my_list);
+	print_ll(my_list);
 	printf("\nCurrent Size: %zu\n", get_size_ll(my_list));
 	linked_list *clone_list = clone_linked_list(my_list, NULL);
 	delete_ll(clone_list, 0);
 	printf("----- ----- Cloned List (first element removed) ----- -----\n");
-	print_linked_list(clone_list);
+	print_ll(clone_list);
 	printf("\nCurrent Clone Size: %zu\n", get_size_ll(clone_list));
 	printf("----- ----- Reverse Linked List Test ----- -----\n");
-	reverse_linked_list(clone_list);
-	print_linked_list(clone_list);
+	reverse_ll(clone_list);
+	print_ll(clone_list);
 	printf("\n----- ----- Getting Values Test (from cloned list) ----- -----\n");
 	printf("Index 0: %d\n", get_int_val_ll(clone_list, 0));
 	printf("Index 5: %d\n", get_int_val_ll(clone_list, 5));
 	printf("\n----- ----- Extraction Test ----- -----\n");
 	printf("----- my_list before extractions -----\n");
-	print_linked_list(my_list);
+	print_ll(my_list);
 	void *extract1 = extract_ll(my_list, 3);
 	void *extract2 = extract_head_ll(my_list);
 	void *extract3 = extract_ll(my_list, 6);
@@ -940,32 +970,32 @@ int main() {
 	printf("Extracted from head: %d\n", *(int*)extract2);
 	printf("Extracted from tail (index 6) %d\n", *(int*)extract3);
 	printf("----- my list after extractions -----\n");
-	print_linked_list(my_list);
+	print_ll(my_list);
 	printf("\n----- ----- Filtering tests on cloned list ----- -----\n");
 	printf("----- Current Cloned List -----\n");
-	print_linked_list(clone_list);
+	print_ll(clone_list);
 	printf("----- Cloned List after odd numbers were filtered -----\n");
 	filter_ll(clone_list, remove_odd_values);
-	print_linked_list(clone_list);
+	print_ll(clone_list);
 	printf("----- Cloned List after all values were filtered -----\n");
 	filter_ll(clone_list, remove_all_ll);
-	print_linked_list(clone_list);
+	print_ll(clone_list);
 	printf("----- ----- Re populating cloned list ----- -----\n");
 	for (i = 0; i < 8; i++) {
 		printf("Int added at index: %zu\n", append_ll(clone_list, &values[i], sizeof(int)));
 	}
-	print_linked_list(clone_list);
+	print_ll(clone_list);
 	printf("----- Slicing cloned list from 1 - 4 and printing it-----");
 	linked_list *sliced_list = slice_ll(clone_list, 1, 4, NULL);
 	linked_list *head_slice = slice_ll(clone_list, 0, 0, NULL);
 	linked_list *tail_slice = slice_ll(clone_list, get_size_ll(clone_list) - 1, get_size_ll(clone_list) - 1, NULL);
-	print_linked_list(sliced_list);
+	print_ll(sliced_list);
 	printf("----- Sliced head printed below -----\n");
-	print_linked_list(head_slice);
+	print_ll(head_slice);
 	printf("----- Sliced tail printed below -----\n");
-	print_linked_list(tail_slice);
+	print_ll(tail_slice);
 	printf("----- ----- Cloned list after the slices ----- -----\n");
-	print_linked_list(clone_list);
+	print_ll(clone_list);
 	printf("----- Testing iter_ll by adding up everything in the sliced_list -----\n");
 	iter_ll(sliced_list);
 	// i defined above
@@ -1036,11 +1066,11 @@ int main() {
 
 	//linked_list *other_clone = clone_linked_list(my_list, NULL);
 
-	print_linked_list(my_list);
+	print_ll(my_list);
 	merge_sort_ll(my_list);
 	internal_check_ll(my_list, 0);
 	printf("Merge Sorted linked_list!!!!\n");
-	print_linked_list(my_list);
+	print_ll(my_list);
 	printf("Is linked list sorted? %d\n", is_sorted_ll(my_list));
 
 	//print_linked_list(other_clone);
@@ -1065,12 +1095,27 @@ int main() {
 	cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
 	printf("%f Seconds used by CPU to sort a 5 million random elements linked list (merge sort)!\n", cpu_time_used);
 	internal_check_ll(list_to_sort, 0);
+
+	int seperate_test_func(void * a) {
+		int aa = *(int*)a;
+		return (aa == -4) || (aa == 18) || (aa == 6);
+	}
+
+	linked_list *seperated = seperate_linked_list(my_list, seperate_test_func, NULL);
+
+	printf("my_list\n");
+	print_ll(my_list);
+	printf("seperated\n");
+	print_ll(seperated);
+
+	internal_check_ll(my_list, 0);
+	internal_check_ll(seperated, 0);
 	
 	//free_linked_list(other_clone);
 	free_linked_list(list_to_sort);
 	free(my_array2);
 	free_linked_list(five_mil_test);
-
+	free_linked_list(seperated);
 	free_linked_list(my_list);
 	free_linked_list(head_slice);
 	free_linked_list(tail_slice);
