@@ -217,12 +217,16 @@ int main() {
 
 	internal_check_ll(my_list, 0);
 	internal_check_ll(seperated, 0);
+
+	combine_ll(my_list, seperated);
+	print_ll(my_list);
+	internal_check_ll(my_list, 0);
 	
 	//free_linked_list(other_clone);
 	free_linked_list(list_to_sort);
 	free(my_array2);
 	free_linked_list(five_mil_test);
-	free_linked_list(seperated);
+	//free_linked_list(seperated);
 	free_linked_list(my_list);
 	free_linked_list(head_slice);
 	free_linked_list(tail_slice);

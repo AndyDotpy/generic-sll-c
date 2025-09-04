@@ -817,6 +817,13 @@ void fix_ll(linked_list *list, int display_fix_message) {
 	list->tail = curr;
 }
 
+void combine_ll(linked_list *combined, linked_list *freed) {
+	combined->tail->next = freed->head;
+	combined->size += freed->size;
+	combined->tail = freed->tail;
+	free(freed);
+}
+
 int get_int_val_ll(linked_list *list, size_t index) {
 	return *(int*) get_data_ll(list, index);
 }

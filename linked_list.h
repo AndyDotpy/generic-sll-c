@@ -143,6 +143,10 @@ int internal_check_ll(linked_list *list, int fix);
 // Set display_fix_message to 1 if you want to see what it did
 void fix_ll(linked_list *list, int display_fix_message);
 
+// Links freed onto the end of combined by combined->tail->next = freed->head as well as freeing freed linked_list struct
+// Adds sizes together, keeps combined methods not freed methods. Sets tail to combined->tail = freed->tail;
+void combine_ll(linked_list *combined, linked_list *freed);
+
 // These are getter methods that returns a copy of the data type stated in the method name, not pointers
 // Note these methods do not check types they assume that there is actually the given type there
 // If you are unsure if you are getting the correct type do not use these methods below they will crash your program
